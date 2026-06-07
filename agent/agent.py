@@ -369,38 +369,53 @@ Use this memory as the PRIMARY basis for all your recommendations. Reference spe
 
 {memory_section}
 
-Generate a professional, actionable Meeting Preparation Brief for the upcoming meeting with {participant}.
+Generate a highly professional, visually clean, and structured Meeting Preparation Brief for the upcoming meeting with {participant}. 
+Ensure the formatting is neat, clean, and highly readable.
 
-## 📋 Meeting Prep Brief: {participant}
-**Generated:** {timestamp}
-**Memory Source:** {memory_source}
+Format the output strictly as follows:
+
+# 📋 Meeting Prep Brief: **{participant}**
+*Generated on: {timestamp} | Memory Source: {memory_source}*
 
 ---
 
-### 🧠 Relationship Summary
-(2-3 sentences summarizing the relationship and key context from memory)
+### 🧠 RELATIONSHIP SUMMARY
+> (Write a 2-3 sentence elegant executive summary of your relationship and context with {participant} based on memory.)
 
-### ⚠️ Open Commitments & Follow-ups
-(List unresolved commitments or action items from past meetings. If none, say "None detected.")
+---
 
-### 🚨 Risk Alerts
-(Any risks: missed deadlines, long gaps since contact, recurring issues. If none, say "None detected.")
+### ⚠️ OPEN COMMITMENTS & FOLLOW-UPS
+(Identify any unresolved promises, deliverables, or action items. Format each as a bullet point with bold status, description, and date. Example:
+- **[PENDING]** Finish code review for PR #42 (promised on May 20)
+- **[OVERDUE]** Staging environment GCP setup (promised on May 10)
+If no commitments are found in memory, write: *None detected.*)
 
-### 📅 Recommended Agenda
-1. (item based on memory)
-2. (item based on memory)
-3. (item based on memory)
-4. (item based on memory)
+---
 
-### 💬 Conversation Starters
-- (personal opener based on memory details)
-- (work/technical opener based on memory)
+### 🚨 RISK ALERTS
+(Highlight any risks from memory, such as long delays since last contact, missed deadlines, or unresolved critical issues. If none, write: *None detected.*)
 
-### 💡 Key Things to Remember
-- (important personal or professional detail from memory)
-- (another key detail)
+---
 
-Be specific and reference actual details from the memory. If no memory exists, give general first-meeting advice."""
+### 📅 RECOMMENDED AGENDA
+(Create a numbered list of topics to discuss. For each topic, provide a bold title followed by a 1-sentence explanation of why it is on the agenda based on past notes. Example:
+1. **PR #42 Review Status**: Review the code review changes Alex promised to complete by May 25.
+2. **Kubernetes Speaker Invitation**: Invite John to talk at the next meetup as he expressed interest on May 10.)
+
+---
+
+### 💬 CONVERSATION STARTERS
+- **Personal Opener**: (A friendly, memory-based greeting, e.g., asking about their vacation or health mentioned in past notes)
+- **Professional Opener**: (A smooth segue into the work topics, based on past notes)
+
+---
+
+### 💡 KEY DETAILS TO REMEMBER
+- **Preferred Tech/Topics**: (e.g., Rust, async programming, Kubernetes)
+- **Other Context**: (e.g., mentors junior developers Sam and Priya, concerned about budget overruns)
+
+---
+*Base all recommendations strictly on the retrieved memory context. Do not invent details not present in the historical memories.*"""
 
     info("Synthesizing meeting brief with Groq LLM...")
     try:
