@@ -113,18 +113,6 @@ st.markdown(f"""
 
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🔌 Connection Status")
-    if st.session_state.use_cloud:
-        st.success("Hindsight Cloud connected!")
-    else:
-        st.warning("Running in LOCAL MODE (local_memory.json)")
-        
-    if GROQ_API_KEY:
-        st.success("Groq LLM is ready.")
-    else:
-        st.error("GROQ_API_KEY is missing!")
-        
-    st.markdown("---")
     st.markdown("### ⚡ Demo Options")
     if st.button("Seed Mock Memories (Alex, Sarah, John)", use_container_width=True):
         seed_demo_data()
