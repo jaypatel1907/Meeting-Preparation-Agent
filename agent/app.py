@@ -521,27 +521,27 @@ if st.session_state.active_tab == "dashboard":
     with row1_col1:
         st.markdown("""
         <div class="nav-card">
-            <div class="nav-icon">📋</div>
-            <div class="nav-title">1. Prepare Brief</div>
-            <div class="nav-desc">Generate AI briefings, track past commitments, and get custom icebreakers.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
-        if st.button("Start Preparing 📋", use_container_width=True, key="nav_btn_prep"):
-            st.session_state.active_tab = "prep"
-            st.rerun()
-            
-    with row1_col2:
-        st.markdown("""
-        <div class="nav-card">
             <div class="nav-icon">📝</div>
-            <div class="nav-title">2. Save Notes</div>
+            <div class="nav-title">1. Save Notes</div>
             <div class="nav-desc">Save structured notes to persistent memory with AI fact extraction.</div>
         </div>
         """, unsafe_allow_html=True)
         st.write("")
         if st.button("Save Notes 📝", use_container_width=True, key="nav_btn_save"):
             st.session_state.active_tab = "save"
+            st.rerun()
+            
+    with row1_col2:
+        st.markdown("""
+        <div class="nav-card">
+            <div class="nav-icon">📋</div>
+            <div class="nav-title">2. Prepare Brief</div>
+            <div class="nav-desc">Generate AI briefings, track past commitments, and get custom icebreakers.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
+        if st.button("Start Preparing 📋", use_container_width=True, key="nav_btn_prep"):
+            st.session_state.active_tab = "prep"
             st.rerun()
             
     with row1_col3:
