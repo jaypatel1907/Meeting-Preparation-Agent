@@ -98,6 +98,7 @@ if "initialized" not in st.session_state:
     ]
     st.session_state.step = "menu"
     st.session_state.save_participant = ""
+    st.session_state.processed_file = ""
     st.session_state.initialized = True
 
 # Mode indicator label
@@ -132,6 +133,145 @@ with st.sidebar:
         st.session_state.step = "menu"
         st.session_state.save_participant = ""
         st.rerun()
+        
+    st.markdown("---")
+    st.markdown("### 📁 Document Memory")
+    uploaded_file = st.file_uploader("Upload meeting document (PDF, TXT):", type=["pdf", "txt"])
+
+
+# ─── PROCESS UPLOADED DOCUMENT ────────────────────────────────────────────────
+if uploaded_file is not None and st.session_state.get("processed_file") != uploaded_file.name:
+    st.session_state.processed_file = uploaded_file.name
+    
+    with st.spinner("Processing and analyzing meeting document..."):
+        file_text = ""
+        # 1. Extract text from uploaded document
+        if uploaded_file.name.endswith(".txt"):
+            file_text = uploaded_file.read().decode("utf-8", errors="replace")
+        elif uploaded_file.name.endswith(".pdf"):
+            try:
+                import io
+                from pypdf import PdfReader
+                pdf_reader = PdfReader(io.BytesIO(uploaded_file.read()))
+                pages_text = []
+                for page in pdf_reader.pages:
+                    t = page.extract_text()
+                    if t:
+                        pages_text.append(t)
+                file_text = "\n".join(pages_text)
+            except Exception as e:
+                st.error(f"Failed to parse PDF document: {e}")
+                
+        if not file_text.strip():
+            st.error("Document is empty or text could not be extracted.")
+        else:
+            # 2. Extract key info using Groq
+            if not st.session_state.groq_client:
+                st.error("Groq API is not ready. Cannot process document.")
+            else:
+                prompt = f"""You are an AI Meeting Assistant with document memory capability.
+Your job is to process meeting-related files such as PDFs, Word documents, text files, slides, and notes.
+
+Extract key details from this document:
+Document Name: {uploaded_file.name}
+Document Content:
+{file_text}
+
+You MUST output your response exactly in this structured format:
+
+### 📋 Summary
+(A brief, professional 2-3 sentence summary of the document's main topics and overall context.)
+
+### 📌 Key Points
+- (Important point 1)
+- (Important point 2)
+- (Decisions mentioned)
+
+### ⚠️ Action Items
+- (Action item description, assigned person, and deadline if mentioned)
+
+[PARTICIPANTS]: (List the names of people/participants mentioned in this document, separated by commas. Example: Alex, Sarah. If none, write "None".)
+"""
+                try:
+                    response = st.session_state.groq_client.chat.completions.create(
+                        model=MODEL,
+                        messages=[
+                            {"role": "system", "content": "You are a professional AI meeting preparation assistant. Extract key meeting insights from documents exactly in the requested format."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.1,
+                        max_tokens=1000
+                    )
+                    analysis = response.choices[0].message.content.strip()
+                    
+                    # 3. Parse identified participants
+                    participants = []
+                    import re
+                    part_match = re.search(r"\[PARTICIPANTS\]:\s*(.*)", analysis, re.IGNORECASE)
+                    if part_match:
+                        raw_parts = part_match.group(1).strip()
+                        if raw_parts and raw_parts.lower() != "none":
+                            participants = [p.strip().lower() for p in raw_parts.split(",") if p.strip()]
+                    
+                    # Strip the participants tagging line from final display
+                    display_analysis = re.sub(r"\[PARTICIPANTS\]:.*", "", analysis, flags=re.IGNORECASE).strip()
+                    
+                    # 4. Link context and store in memory
+                    related_meetings = []
+                    stored_confirmations = []
+                    
+                    if participants:
+                        for p in participants:
+                            # Retrieve past history
+                            if st.session_state.use_cloud:
+                                history = cloud_recall(st.session_state.hindsight_client, p)
+                            else:
+                                history = local_recall(p)
+                                
+                            # Track related meetings
+                            if history:
+                                count = len(history.split("\n\n---\n\n"))
+                                related_meetings.append(f"Linked with {p.capitalize()}'s profile ({count} past meetings found).")
+                            else:
+                                related_meetings.append(f"Created a new profile history for {p.capitalize()}.")
+                                
+                            # Format memory entry
+                            memory_content = f"Document: {uploaded_file.name}\nKey insights extracted from document:\n{display_analysis}"
+                            
+                            # Store in memory
+                            if st.session_state.use_cloud:
+                                saved = cloud_retain(st.session_state.hindsight_client, p.capitalize(), memory_content)
+                                if not saved:
+                                    local_retain(p, memory_content)
+                                    stored_confirmations.append(f"Saved locally for {p.capitalize()} (Cloud save failed)")
+                                else:
+                                    stored_confirmations.append(f"Saved to Cloud Memory for {p.capitalize()}")
+                            else:
+                                local_retain(p, memory_content)
+                                stored_confirmations.append(f"Saved to Local Memory for {p.capitalize()}")
+                    else:
+                        related_meetings.append("No specific participant names identified in the document.")
+                        stored_confirmations.append("Document processed, but not linked to any specific participant.")
+                        
+                    # 5. Construct final message response in requested format
+                    related_meetings_str = "\n".join([f"- {m}" for m in related_meetings])
+                    stored_confirmations_str = "\n".join([f"- {c}" for c in stored_confirmations])
+                    
+                    final_reply = f"""{display_analysis}
+
+### ⏱️ Related Meetings
+{related_meetings_str}
+
+### 💾 Stored Memory Confirmation
+{stored_confirmations_str}"""
+
+                    # Append to conversation messages
+                    st.session_state.messages.append({"role": "user", "content": f"Uploaded document: `{uploaded_file.name}`"})
+                    st.session_state.messages.append({"role": "assistant", "content": final_reply})
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Error analyzing document with Groq: {e}")
 
 # ─── CONVERSATION WINDOW ──────────────────────────────────────────────────────
 # Display past messages
