@@ -32,6 +32,17 @@ from agent import (
 # Load environment variables
 load_dotenv()
 
+# Override terminal print helper functions dynamically to prevent encoding errors on Windows
+import agent
+agent.success = lambda msg: None
+agent.warn = lambda msg: None
+agent.error = lambda msg: None
+agent.info = lambda msg: None
+agent.section = lambda title: None
+agent.agent_says = lambda msg: None
+agent.banner = lambda mode_label="": None
+
+
 # Page Setup
 st.set_page_config(
     page_title="MeetPrep AI Agent",
