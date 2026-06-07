@@ -167,29 +167,30 @@ DEMO_MEMORIES = [
 def banner(mode_label=""):
     label = f"  [{mode_label}]" if mode_label else ""
     print(f"""
-{BLUE}{BOLD}╔══════════════════════════════════════════════════════╗
-║          🧠  MeetPrep AI Agent{label:<24}║
-║   Powered by Hindsight Memory + Groq LLM             ║
-╚══════════════════════════════════════════════════════╝{RESET}
++----------------------------------------------------+
+|          MeetPrep AI Agent{label:<24} |
+|   Powered by Hindsight Memory + Groq LLM           |
++----------------------------------------------------+
 """)
 
 def section(title):
-    print(f"\n{CYAN}{BOLD}── {title} {'─' * max(0, 48 - len(title))}{RESET}")
+    print(f"\n{CYAN}{BOLD}-- {title} {'-' * max(0, 48 - len(title))}{RESET}")
 
 def info(msg):
     print(f"  {DIM}{msg}{RESET}")
 
 def success(msg):
-    print(f"  {GREEN}✓ {msg}{RESET}")
+    print(f"  {GREEN}[OK] {msg}{RESET}")
 
 def warn(msg):
-    print(f"  {YELLOW}⚠  {msg}{RESET}")
+    print(f"  {YELLOW}[WARN] {msg}{RESET}")
 
 def error(msg):
-    print(f"  {RED}✗ {msg}{RESET}")
+    print(f"  {RED}[ERROR] {msg}{RESET}")
 
 def agent_says(msg):
-    print(f"\n{BLUE}{BOLD}🤖 Agent:{RESET} {msg}")
+    print(f"\n{BLUE}{BOLD}[Agent]:{RESET} {msg}")
+
 
 def user_input(prompt="You: "):
     try:
@@ -518,10 +519,10 @@ def run_agent(demo_mode: bool = False):
             if brief is None:
                 warn("Meeting brief could not be generated. Fix your GROQ_API_KEY and try again.")
             else:
-                print(f"\n{'═' * 60}")
+                print(f"\n{'=' * 60}")
                 print(brief)
-                print(f"{'═' * 60}")
-                agent_says("Your meeting prep brief is ready! Good luck 🚀")
+                print(f"{'=' * 60}")
+                agent_says("Your meeting prep brief is ready! Good luck!")
                 agent_says("After the meeting, use option 2 to save your notes.")
 
         # ── OPTION 2: Save meeting notes ──────────────────────────────────────
@@ -568,14 +569,14 @@ def run_agent(demo_mode: bool = False):
             if saved:
                 agent_says(
                     f"Perfect! I've saved the meeting with {participant} to memory. "
-                    f"Next time you prepare for a meeting with them, I'll remember everything you just told me. 🧠"
+                    f"Next time you prepare for a meeting with them, I'll remember everything you just told me."
                 )
             else:
                 error("Notes could not be saved. Please check your configuration.")
 
         # ── OPTION 3: Exit ────────────────────────────────────────────────────
         elif choice == "3":
-            agent_says("Goodbye! I'll remember everything for next time. 🧠✨")
+            agent_says("Goodbye! I'll remember everything for next time.")
             break
 
         else:
