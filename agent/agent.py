@@ -19,6 +19,41 @@ import datetime
 import socket
 import urllib.parse
 
+# ─── SAFE PRINT FOR WINDOWS ───────────────────────────────────────────────────
+_builtin_print = print
+def print(*args, **kwargs):
+    """Safe print wrapper that handles UnicodeEncodeError on Windows CP1252 terminals."""
+    new_args = []
+    for arg in args:
+        if isinstance(arg, str):
+            try:
+                encoding = sys.stdout.encoding or 'utf-8'
+                arg.encode(encoding)
+                new_args.append(arg)
+            except UnicodeEncodeError:
+                encoding = sys.stdout.encoding or 'ascii'
+                safe_str = arg
+                replacements = {
+                    '✓': '[OK]',
+                    '⚠': '[WARN]',
+                    '✗': '[ERROR]',
+                    '──': '--',
+                    '═': '=',
+                    '║': '|',
+                    '🧠': 'Memory',
+                    '🤖': 'Agent',
+                    '👋': 'Bye',
+                    '🚀': 'Go',
+                    '✨': '*'
+                }
+                for u_char, r_char in replacements.items():
+                    safe_str = safe_str.replace(u_char, r_char)
+                safe_str = safe_str.encode(encoding, errors='replace').decode(encoding)
+                new_args.append(safe_str)
+        else:
+            new_args.append(arg)
+    _builtin_print(*new_args, **kwargs)
+
 # ─── AUTO LOAD .env FILE ───────────────────────────────────────────────────────
 def load_dotenv():
     """Simple .env file loader — no external dependency needed."""
