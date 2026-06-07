@@ -79,6 +79,7 @@ HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "")
 MEMORY_BANK_ID    = "meetprep-agent"
 MODEL             = "llama-3.3-70b-versatile"
 LOCAL_MEMORY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "local_memory.json")
+TIMELINE_EVENTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "timeline_events.json")
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Colors
@@ -232,6 +233,34 @@ def save_local_memory(store: dict):
     with open(LOCAL_MEMORY_FILE, "w", encoding="utf-8") as f:
         json.dump(store, f, indent=2, ensure_ascii=False)
 
+def load_timeline_events() -> dict:
+    """Load timeline events from disk."""
+    if os.path.exists(TIMELINE_EVENTS_FILE):
+        try:
+            with open(TIMELINE_EVENTS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_timeline_events(store: dict):
+    """Persist timeline events to disk."""
+    with open(TIMELINE_EVENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(store, f, indent=2, ensure_ascii=False)
+
+def append_timeline_events(participant: str, new_events: list):
+    """Append new events to a participant's timeline."""
+    if not new_events:
+        return
+    store = load_timeline_events()
+    key = participant.lower().strip()
+    if key not in store:
+        store[key] = []
+    store[key].extend(new_events)
+    # Sort events by date descending (newest first)
+    store[key] = sorted(store[key], key=lambda x: x.get("date", ""), reverse=True)
+    save_timeline_events(store)
+
 def local_retain(participant: str, content: str):
     """Add a memory entry for a participant in local storage."""
     store = load_local_memory()
@@ -351,6 +380,76 @@ Be concise and factual. Write it as structured sentences, not bullet points."""
         return raw_notes  # fallback: store raw notes as-is
 
 
+def extract_timeline_events_with_ai(groq_client, participant: str, date_str: str, raw_notes: str) -> list:
+    """Use Groq to extract discrete timeline events from raw notes."""
+    prompt = f"""You are a data extraction AI. Extract key events from the following meeting notes and return a strict JSON list.
+
+Participant: {participant}
+Meeting Date: {date_str}
+Notes:
+{raw_notes}
+
+Valid Event Types:
+- "Meeting" (General meeting summary)
+- "Decision" (Agreed upon decisions)
+- "Commitment" (Promises made by participant)
+- "Follow-up" (Things to follow up on)
+- "Task Assigned" (Tasks assigned to participant)
+- "Task Completed" (Tasks completed by participant)
+- "Risk Alert" (Issues, bottlenecks, missed deadlines)
+
+Return ONLY a JSON list of objects. Each object must have:
+- "id": string (a random short unique ID, e.g., "evt_123")
+- "date": string (the date string provided: "{date_str}")
+- "type": string (exactly one of the valid event types above)
+- "summary": string (very concise 1-2 sentence description)
+- "tags": list of strings (1-3 relevant keywords, e.g., ["Product", "Deployment"])
+
+Example Output:
+[
+  {{
+    "id": "evt_abc123",
+    "date": "{date_str}",
+    "type": "Meeting",
+    "summary": "Discussed the product roadmap and upcoming deployment.",
+    "tags": ["Roadmap", "Deployment"]
+  }},
+  {{
+    "id": "evt_xyz789",
+    "date": "{date_str}",
+    "type": "Decision",
+    "summary": "Agreed to use FastAPI for the backend rewrite.",
+    "tags": ["FastAPI", "Backend"]
+  }}
+]
+
+If the notes are empty or contain no events, return an empty list `[]`. Output raw JSON only. Do not wrap in markdown ```json blocks."""
+    
+    try:
+        response = groq_client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=1000
+        )
+        result_text = response.choices[0].message.content.strip()
+        
+        # Clean JSON markdown blocks if present
+        if result_text.startswith("```json"):
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif result_text.startswith("```"):
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+            
+        import json
+        events = json.loads(result_text)
+        if isinstance(events, list):
+            return events
+        return []
+    except Exception as e:
+        error(f"Failed to extract timeline events: {{e}}")
+        return []
+
+
 def generate_meeting_prep_brief(groq_client, participant: str, memory: str) -> str:
     """Use Groq LLM to generate a structured meeting prep brief."""
     if memory:
@@ -365,64 +464,40 @@ Use this memory as the PRIMARY basis for all your recommendations. Reference spe
     timestamp = datetime.datetime.now().strftime("%d %B %Y, %H:%M")
     memory_source = "Hindsight Cloud / Local Memory" if memory else "No previous history"
 
-    prompt = f"""You are an intelligent Meeting Preparation Agent for community leaders, mentors, and organizers.
+    prompt = f"""You are a strict data formatter. You MUST output ONLY the following template, filled in with facts from the memory. Do not add any extra text, paragraphs, or different headings. If no memory exists, use "None" or "0".
 
+MEMORY:
 {memory_section}
 
-Generate an extremely concise, professional, and visually clean Meeting Preparation Brief for the upcoming meeting with {participant}.
-Every section must be very brief, punchy, and short so it can be scanned in 5 seconds. Avoid long paragraphs and wordy explanations.
+TEMPLATE TO FILL:
+Meeting Brief: {participant}
+🧠 Relationship Snapshot
+Last discussed: [1-4 words main topic]
+Meetings: [Number of past meetings]
+Last interaction: [Time ago, e.g., '2 weeks ago', or 'None']
+Relationship status: [Active / Occasional / New]
+⚠️ Open Items
+[List 1-3 open items from memory, one per line. If none, write: "No open items"]
+🚨 Alerts
+[List missed deadlines/overdue items. If none, write: "No pending commitments" and on the next line "No missed deadlines"]
+🎯 Today's Agenda
+[List 1-3 short agenda points, one per line]
+💬 Suggested Opening
 
-Format the output strictly as follows:
+"[Write ONE natural, friendly opening sentence based on memory]"
 
-# 📋 Brief: **{participant}**
-*Generated on: {timestamp} | Memory Source: {memory_source}*
-
----
-
-### 🧠 SUMMARY
-> (Write exactly 1 short, concise sentence summarizing the context of your relationship with {participant} based on memory.)
-
----
-
-### ⚠️ COMMITMENTS
-(List unresolved commitments or action items. Keep each under 10 words. Example:
-- **[PENDING]** Finish PR #42 review (by May 25)
-- **[OVERDUE]** GCP setup (by May 10)
-If none, write: - *None*)
-
----
-
-### 🚨 RISKS
-(Highlight key risks or missed deadlines in brief. If none, write: - *None*)
-
----
-
-### 📅 AGENDA (Max 3)
-(List max 3 numbered items. Keep each under 10 words. Example:
-1. **PR #42 Review**: Check code review status.
-2. **Kubernetes Talk**: Invite John for talk.)
-
----
-
-### 💬 STARTERS
-- **Personal**: (One short personal greeting, e.g. ask about health/vacation)
-- **Work**: (One short professional greeting to transition into topics)
-
----
-
-### 💡 KEY DETAILS
-- **Tech/Topics**: (Brief list of tech stack or interests)
-- **Other Context**: (Brief background detail)
-
----
-*Base all recommendations strictly on memory. Be extremely brief.*"""
+📊 Quick Stats
+Decisions made: [Number]
+Open follow-ups: [Number]
+Commitments: [Number]
+Risk level: [🟢 Low / 🟡 Medium / 🔴 High]"""
 
     info("Synthesizing meeting brief with Groq LLM...")
     try:
         response = groq_client.chat.completions.create(
             model=MODEL,
             messages=[
-                {"role": "system", "content": "You are a professional AI meeting preparation agent. Always base your recommendations on actual historical memory. Be concise, specific, and actionable."},
+                {"role": "system", "content": "You are a professional AI meeting preparation agent. Always base your recommendations on actual historical memory. Be concise, specific, and actionable. Follow the output format exactly."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
