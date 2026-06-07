@@ -6,3 +6,7 @@ dist/
 frontend/node_modules/
 frontend/dist/
 backend/node_modules/
+__pycache__/
+*.pyc
+.streamlit/
+

@@ -1,47 +1,69 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CalendarDays, BrainCircuit } from 'lucide-react';
+import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { mockParticipants } from './mockData';
 import Dashboard from './pages/Dashboard';
 import ParticipantProfile from './pages/ParticipantProfile';
 import MeetingPrep from './pages/MeetingPrep';
 
 function Sidebar() {
   const location = useLocation();
-  const isActive = (path) => location.pathname === path ? 'active' : '';
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-logo">
-        <BrainCircuit size={28} color="#3b82f6" /> MeetPrep AI
+    <aside className="sidebar">
+      {/* Brand */}
+      <div className="sidebar-brand">
+        <div className="brand-icon">🧠</div>
+        <div className="brand-name">Meet<span>Prep</span> AI</div>
       </div>
-      <div className="nav-links">
-        <Link to="/" className={`nav-item ${isActive('/')}`}><LayoutDashboard size={20} /> Dashboard</Link>
-        <Link to="/participant/p1" className={`nav-item ${location.pathname.includes('/participant') ? 'active' : ''}`}><Users size={20} /> Profiles & Timeline</Link>
-        <Link to="/prep/p1" className={`nav-item ${location.pathname.includes('/prep') ? 'active' : ''}`}><CalendarDays size={20} /> Smart Meeting Prep</Link>
+
+      {/* Nav */}
+      <div className="sidebar-section">
+        <div className="sidebar-section-label">Navigation</div>
+        <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </NavLink>
+        <NavLink to="/prep/p1" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Smart Meeting Prep
+        </NavLink>
       </div>
-      
-      <div style={{ marginTop: 'auto', padding: '16px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Memory Engine</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: '500' }}>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }}></div>
-          Hindsight Active
-        </div>
+
+      {/* Participants */}
+      <div className="sidebar-section">
+        <div className="sidebar-section-label">Participants</div>
+        {mockParticipants.map(p => (
+          <NavLink
+            key={p.id}
+            to={`/participant/${p.id}`}
+            className={({ isActive }) => `participant-link ${isActive ? 'active' : ''}`}
+          >
+            <img src={p.avatar} alt={p.name} className="p-avatar" />
+            <span>{p.name}</span>
+          </NavLink>
+        ))}
       </div>
-    </div>
+
+      {/* Memory Status */}
+      <div className="memory-status">
+        <div className="status-dot"></div>
+        Hindsight Memory Active
+      </div>
+    </aside>
   );
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
+      <div className="layout">
         <Sidebar />
-        <div className="main-content">
+        <main className="main">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/participant/:id" element={<ParticipantProfile />} />
             <Route path="/prep/:id" element={<MeetingPrep />} />
           </Routes>
-        </div>
+        </main>
       </div>
     </BrowserRouter>
   );

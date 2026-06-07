@@ -1,0 +1,40 @@
+{
+  "alex": [
+    {
+      "date": "2026-05-20",
+      "text": "Meeting Date: 20 May 2026. Participant: Alex. Discussed the PR #42 code review — Alex promised to complete it by 25 May 2026. Alex mentioned he has been unwell with flu this week and may need a few extra days. He is interested in Rust and wants help exploring async programming patterns. Follow-up: Check if PR #42 was merged. Next meeting: Discuss the upcoming product deployment planned for Q3."
+    },
+    {
+      "date": "2026-04-15",
+      "text": "Meeting Date: 15 April 2026. Participant: Alex. We reviewed Alex's contribution to the microservices migration project. Alex raised concerns about database connection pooling under load. He committed to writing a benchmarking script to identify the bottleneck. He also mentioned he is mentoring two junior developers, Priya and Sam. Follow-up: Share results of benchmarking with the team by end of April."
+    }
+  ],
+  "sarah": [
+    {
+      "date": "2026-05-30",
+      "text": "Meeting Date: 30 May 2026. Participant: Sarah. Discussed Sarah's role in the upcoming community hackathon (HackBaroda). Sarah is leading the Community Track and wants to finalize problem statements. She committed to sending the finalized problem statement document by June 2. Concerns: She is worried about low participant registration so far. Personal: Sarah's baby shower is next week, team has planned a small surprise. Follow-up: Check if the problem statement doc was shared."
+    },
+    {
+      "date": "2026-04-22",
+      "text": "Meeting Date: 22 April 2026. Participant: Sarah. Sarah proposed a new open-source workshop series for the community. She wants to run 3 workshops: Git & GitHub, Python basics, and REST APIs. She will need sponsorship for venue and catering. Action: Help Sarah draft the sponsorship proposal by end of April. Sarah has expertise in developer advocacy and technical writing."
+    }
+  ],
+  "john": [
+    {
+      "date": "2026-05-10",
+      "text": "Meeting Date: 10 May 2026. Participant: John. John is leading the infrastructure team. Discussed the cloud migration to GCP. John committed to setting up staging environment by 20 May 2026 — status unknown. He raised concerns about budget overrun in Q2. John is interested in speaking at the next community meetup about Kubernetes. Personal note: John just returned from a 2-week vacation in Japan. Follow-up: Confirm staging environment is live. Invite John for the Kubernetes talk."
+    }
+  ],
+  "miral": [
+    {
+      "date": "2026-06-07",
+      "text": "about product lanuching\nand decide a product prize\nand decide new meeting date"
+    }
+  ],
+  "jay": [
+    {
+      "date": "2026-06-07",
+      "text": "nothing just dealing"
+    }
+  ]
+}

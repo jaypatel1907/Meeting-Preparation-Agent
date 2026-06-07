@@ -1,3 +1,4 @@
 groq
 hindsight-client
 python-dotenv
+streamlit

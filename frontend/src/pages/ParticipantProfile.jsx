@@ -1,93 +1,161 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { mockParticipants, mockMeetings } from '../mockData';
-import { Calendar, MessageSquare, AlertTriangle, Lightbulb } from 'lucide-react';
 
 export default function ParticipantProfile() {
   const { id } = useParams();
   const participant = mockParticipants.find(p => p.id === id) || mockParticipants[0];
-  const meetings = mockMeetings.filter(m => m.participantId === participant.id).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const meetings = mockMeetings
+    .filter(m => m.participantId === participant.id)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const allCommitments = meetings.flatMap(m => m.commitments);
+  const overdueItems = allCommitments.filter(c => c.status === 'Overdue');
+  const pendingItems = allCommitments.filter(c => c.status === 'Pending');
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <img src={participant.avatar} alt={participant.name} style={{ width: '80px', height: '80px', borderRadius: '50%', border: '2px solid var(--accent)' }} />
-        <div>
-          <h1 className="page-title">{participant.name}'s Memory Profile</h1>
-          <p className="page-subtitle">{participant.role}</p>
+      {/* Profile Header */}
+      <div className="profile-header">
+        <img src={participant.avatar} alt={participant.name} className="profile-avatar" />
+        <div className="profile-meta">
+          <h1>{participant.name}</h1>
+          <p>{participant.role}</p>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <Link to={`/prep/${participant.id}`} className="btn btn-primary btn-lg">Generate Meeting Prep →</Link>
         </div>
       </div>
 
+      {/* Participant Selector */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        {mockParticipants.map(p => (
+          <Link key={p.id} to={`/participant/${p.id}`}
+            className={`btn ${participant.id === p.id ? 'btn-primary' : 'btn-ghost'}`}>
+            <img src={p.avatar} alt={p.name} className="p-avatar" style={{ width: '18px', height: '18px' }} />
+            {p.name}
+          </Link>
+        ))}
+      </div>
+
       <div className="grid-2">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          <div className="glass-panel">
-            <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Lightbulb size={20} color="var(--warning)" /> Intelligence Profile</h3>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div className="form-label">Interests & Expertise</div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-                {participant.profile.interests.map(i => <span key={i} className="badge" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--accent)', border: '1px solid rgba(59,130,246,0.3)' }}>{i}</span>)}
-                {participant.profile.skills.map(i => <span key={i} className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)', border: '1px solid rgba(16,185,129,0.3)' }}>{i}</span>)}
+        {/* Left: Profile + Commitments */}
+        <div className="col">
+
+          {/* Memory Profile */}
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">🧠 Memory Profile</div>
+              <span className="badge badge-blue">AI Generated</span>
+            </div>
+
+            <div className="info-row">
+              <div className="info-label">Interests & Expertise</div>
+              <div className="tag-group">
+                {participant.profile.interests.map(i => <span key={i} className="badge badge-blue">{i}</span>)}
+                {participant.profile.skills.map(i => <span key={i} className="badge badge-purple">{i}</span>)}
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <div className="form-label">Communication Style</div>
-              <p style={{ margin: '8px 0 0 0', fontSize: '0.95rem' }}>{participant.profile.communicationStyle}</p>
+            <div className="divider"></div>
+
+            <div className="info-row">
+              <div className="info-label">Communication Style</div>
+              <div className="info-value">{participant.profile.communicationStyle}</div>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <div className="form-label">Contribution History</div>
-              <p style={{ margin: '8px 0 0 0', fontSize: '0.95rem' }}>{participant.profile.contributionHistory}</p>
+            <div className="info-row">
+              <div className="info-label">Contribution History</div>
+              <div className="info-value">{participant.profile.contributionHistory}</div>
             </div>
-            
-            <div>
-              <div className="form-label">Recurring Concerns</div>
-              <div style={{ padding: '12px', background: 'rgba(239,68,68,0.1)', borderLeft: '3px solid var(--danger)', borderRadius: '4px', marginTop: '8px', fontSize: '0.95rem' }}>
+
+            <div className="divider"></div>
+
+            <div className="info-row">
+              <div className="info-label">Recurring Concerns</div>
+              <div className="alert alert-yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 {participant.profile.recurringConcerns}
               </div>
             </div>
           </div>
 
-          <div className="glass-panel" style={{ border: '1px solid rgba(239,68,68,0.3)' }}>
-             <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)' }}><AlertTriangle size={20} /> Active Risks</h3>
-             <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-muted)' }}>
-               {meetings.flatMap(m => m.commitments).filter(c => c.status === 'Overdue').map(c => (
-                 <li key={c.id} style={{ marginBottom: '8px' }}>Overdue: {c.task}</li>
-               ))}
-               <li>Long period since last direct follow-up on health concern.</li>
-             </ul>
-          </div>
-
-        </div>
-
-        <div>
-          <div className="glass-panel">
-            <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={20} color="var(--accent)" /> Relationship Timeline</h3>
-            <div className="timeline">
-              {meetings.map(m => (
-                <div className="timeline-item" key={m.id}>
-                  <div className="timeline-dot"></div>
-                  <div className="timeline-content">
-                    <div className="timeline-date">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric'})}</div>
-                    <div className="timeline-title">{m.topic}</div>
-                    <p className="timeline-desc">{m.notes}</p>
-                    {m.commitments.length > 0 && (
-                      <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Commitments Made</div>
-                        {m.commitments.map(c => (
-                          <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                            <span>• {c.task}</span>
-                            <span className={`badge ${c.status.toLowerCase()}`}>{c.status}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+          {/* Commitments */}
+          {(overdueItems.length > 0 || pendingItems.length > 0) && (
+            <div className="card">
+              <div className="card-header">
+                <div className="card-title">📋 Open Commitments</div>
+              </div>
+              {overdueItems.map(c => (
+                <div className="commitment-item" key={c.id}>
+                  <span className="commitment-task">{c.task}</span>
+                  <span className="badge badge-red">Overdue</span>
+                </div>
+              ))}
+              {pendingItems.map(c => (
+                <div className="commitment-item" key={c.id}>
+                  <span className="commitment-task">{c.task}</span>
+                  <span className="badge badge-yellow">Pending</span>
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Risks */}
+          {overdueItems.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <div className="card-title">⚠️ Risk Detection</div>
+              </div>
+              <div className="alert alert-red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {overdueItems.length} overdue commitment(s) may damage trust. Resolve before next meeting.
+              </div>
+              <div className="alert alert-yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Long period since last health follow-up — personal touch recommended.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Timeline */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">🕐 Relationship Timeline</div>
+            <span className="badge badge-purple">{meetings.length} meetings</span>
+          </div>
+          <div className="timeline">
+            {meetings.map((m, idx) => {
+              const hasOverdue = m.commitments.some(c => c.status === 'Overdue');
+              const hasPending = m.commitments.some(c => c.status === 'Pending');
+              const dotClass = hasOverdue ? 'red' : hasPending ? 'yellow' : '';
+              return (
+                <div className="timeline-item" key={m.id}>
+                  <div className="timeline-left">
+                    <div className={`t-dot ${dotClass}`}></div>
+                    <div className="t-line"></div>
+                  </div>
+                  <div className="t-content">
+                    <div className="t-date">
+                      {new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <div className="t-title">{m.topic}</div>
+                    <div className="t-desc">{m.notes}</div>
+                    {m.commitments.length > 0 && (
+                      <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {m.commitments.map(c => {
+                          const bc = c.status === 'Overdue' ? 'badge-red' : c.status === 'Completed' ? 'badge-green' : 'badge-yellow';
+                          return <span key={c.id} className={`badge ${bc}`}>{c.status}: {c.task}</span>;
+                        })}
+                      </div>
+                    )}
+                    {m.events.map(e => (
+                      <span key={e} className="badge badge-blue" style={{ marginTop: '8px', display: 'inline-flex' }}>📌 {e}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
