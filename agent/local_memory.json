@@ -56,5 +56,23 @@
       "date": "2026-06-07",
       "text": "The key discussion topic was about production. \nJay made no specific commitments or promises during the meeting. \nThere are no action items assigned to any participant. \nNo important personal details were mentioned during the meeting. \nA follow-up is needed to discuss the production topic further, however, no specific date was set. \nNo concerns or issues were raised during the meeting."
     }
+  ],
+  "rahul": [
+    {
+      "date": "2026-06-07",
+      "text": "Document: meeting_sample.pdf\nKey insights extracted from document:\n### 📋 Summary\nThe meeting document discusses the progress of the AI Meeting Assistant project, focusing on the integration of a document memory feature. The meeting took place on 7 June 2026, and the main topics included API development delays and the need for improved vector database integration. The participants made key decisions regarding the technology to be used for the project's backend and memory storage.\n\n### 📌 Key Points\n- API development is delayed by 2 days.\n- There is a need to improve vector database integration.\n- The decision was made to use FastAPI for the backend and ChromaDB for memory storage.\n\n### ⚠️ Action Items\n- Complete backend APIs by Monday, assigned to Rahul.\n- Work on the document parsing module, assigned to Amit."
+    }
+  ],
+  "amit": [
+    {
+      "date": "2026-06-07",
+      "text": "Document: meeting_sample.pdf\nKey insights extracted from document:\n### 📋 Summary\nThe meeting document discusses the progress of the AI Meeting Assistant project, focusing on the integration of a document memory feature. The meeting took place on 7 June 2026, and the main topics included API development delays and the need for improved vector database integration. The participants made key decisions regarding the technology to be used for the project's backend and memory storage.\n\n### 📌 Key Points\n- API development is delayed by 2 days.\n- There is a need to improve vector database integration.\n- The decision was made to use FastAPI for the backend and ChromaDB for memory storage.\n\n### ⚠️ Action Items\n- Complete backend APIs by Monday, assigned to Rahul.\n- Work on the document parsing module, assigned to Amit."
+    }
+  ],
+  "sneha": [
+    {
+      "date": "2026-06-07",
+      "text": "Document: meeting_sample.pdf\nKey insights extracted from document:\n### 📋 Summary\nThe meeting document discusses the progress of the AI Meeting Assistant project, focusing on the integration of a document memory feature. The meeting took place on 7 June 2026, and the main topics included API development delays and the need for improved vector database integration. The participants made key decisions regarding the technology to be used for the project's backend and memory storage.\n\n### 📌 Key Points\n- API development is delayed by 2 days.\n- There is a need to improve vector database integration.\n- The decision was made to use FastAPI for the backend and ChromaDB for memory storage.\n\n### ⚠️ Action Items\n- Complete backend APIs by Monday, assigned to Rahul.\n- Work on the document parsing module, assigned to Amit."
+    }
   ]
 }

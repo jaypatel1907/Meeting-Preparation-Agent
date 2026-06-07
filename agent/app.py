@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
+import json
+import re
+import io
 import datetime
 import streamlit as st
 
@@ -41,6 +44,138 @@ agent.info = lambda msg: None
 agent.section = lambda title: None
 agent.agent_says = lambda msg: None
 agent.banner = lambda mode_label="": None
+
+# ─── CRM DATABASE UTILITIES ───────────────────────────────────────────────────
+CRM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "participant_crm_profiles.json")
+
+def load_crm_profiles():
+    if os.path.exists(CRM_FILE):
+        try:
+            with open(CRM_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_crm_profiles(profiles):
+    try:
+        with open(CRM_FILE, "w", encoding="utf-8") as f:
+            json.dump(profiles, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+def update_crm_profiles_with_ai(groq_client, raw_transcript_or_notes):
+    """Analyzes transcript, extracts/updates CRM profiles for participants."""
+    if not groq_client:
+        return
+    
+    prompt = f"""You are an AI Meeting Intelligence System.
+Your task is to analyze the following meeting transcript/notes and extract information to build participant intelligence profiles.
+
+Transcript/Notes:
+{raw_transcript_or_notes}
+
+For each participant identified in the text, extract:
+1. Identity tracking (Name)
+2. Contribution tracking (Summary of what they said, decisions made, focus areas)
+3. Activity Level (0-100 score, status: active/moderate/low)
+4. Task Responsibility Tracking (Tasks assigned, deadline)
+5. Delay / Risk Detection (Bottlenecks, delay risks)
+6. Behavioral insights (Leadership details, passivity, reliability)
+
+Return the output strictly as a JSON object in this format (do not return any other text, explanations, or code blocks, just raw JSON):
+{{
+  "participants": [
+    {{
+      "name": "Alex",
+      "summary": "Summarized points Alex focused on, including code reviews.",
+      "activity_score": 85,
+      "tasks": ["Finish code review for PR #42 by May 25"],
+      "status": "active",
+      "risk_flags": ["Missed deadline for PR review"],
+      "behavior_insight": "Exhibits leadership by driving PR discussions but shows slight reliability risks."
+    }}
+  ]
+}}
+
+If no participants are found, return an empty list of participants. If data is missing for a participant, mark it as 'unknown' or leave list empty. Do not make assumptions beyond the text.
+"""
+    
+    try:
+        response = groq_client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=1500
+        )
+        result_text = response.choices[0].message.content.strip()
+        
+        # Clean JSON markdown blocks if present
+        if result_text.startswith("```json"):
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif result_text.startswith("```"):
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+            
+        data = json.loads(result_text)
+        extracted_participants = data.get("participants", [])
+        
+        # Load existing profiles
+        profiles = load_crm_profiles()
+        
+        # Merge each extracted participant profile
+        for ep in extracted_participants:
+            name = ep.get("name", "").strip().lower()
+            if not name:
+                continue
+                
+            if name in profiles:
+                # Merge existing profile with new details using Groq
+                existing = profiles[name]
+                merge_prompt = f"""You are an AI Meeting Intelligence System.
+Your task is to merge the existing participant CRM profile with new meeting insights to produce an updated profile.
+
+Existing Profile:
+{json.dumps(existing)}
+
+New Meeting Insights:
+{json.dumps(ep)}
+
+Merge the information. Keep history, track progress of tasks, update scores, and add new behavioral insights.
+Return the updated profile strictly as a JSON object in this format (no explanations, just raw JSON):
+{{
+  "name": "{ep.get('name')}",
+  "summary": "(Consolidated summary of contribution and recurring topics)",
+  "activity_score": (Updated activity score 0-100),
+  "tasks": [(Consolidated list of tasks with updated status/deadlines)],
+  "status": "(active/moderate/low)",
+  "risk_flags": [(Updated delay risks or bottlenecks)],
+  "behavior_insight": "(Updated behavioral insight)"
+}}
+"""
+                merge_response = groq_client.chat.completions.create(
+                    model=MODEL,
+                    messages=[{"role": "user", "content": merge_prompt}],
+                    temperature=0.1,
+                    max_tokens=1000
+                )
+                merge_text = merge_response.choices[0].message.content.strip()
+                
+                if merge_text.startswith("```json"):
+                    merge_text = merge_text.split("```json")[1].split("```")[0].strip()
+                elif merge_text.startswith("```"):
+                    merge_text = merge_text.split("```")[1].split("```")[0].strip()
+                    
+                updated_ep = json.loads(merge_text)
+                profiles[name] = updated_ep
+            else:
+                profiles[name] = ep
+                
+        # Save back to database
+        save_crm_profiles(profiles)
+        
+    except Exception:
+        pass
+
 
 
 # Page Setup
@@ -112,6 +247,43 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ─── PARTICIPANT CRM DISPLAY ──────────────────────────────────────────────────
+if 'selected_crm' in locals() and selected_crm and selected_crm != "-- Select --":
+    prof = crm_profiles[selected_crm.lower()]
+    
+    st.markdown(f"<h3 style='margin-top:10px;'>👤 CRM Intelligence: <b>{prof.get('name')}</b></h3>", unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Activity Score", value=f"{prof.get('activity_score', 'unknown')}/100")
+    with col2:
+        status_val = prof.get('status', 'unknown').upper()
+        st.metric(label="Participation Status", value=status_val)
+        
+    st.markdown("#### 🧠 Behavioral Insight")
+    st.info(prof.get('behavior_insight', 'No insights generated.'))
+    
+    st.markdown("#### 📝 Contribution Summary")
+    st.write(prof.get('summary', 'No summary available.'))
+    
+    st.markdown("#### ⏱️ Tasks & Responsibilities")
+    tasks = prof.get('tasks', [])
+    if not tasks:
+        st.write("- *No tasks currently assigned.*")
+    else:
+        for t in tasks:
+            st.markdown(f"- [ ] {t}")
+            
+    st.markdown("#### 🚨 Delay & Risk Flags")
+    risks = prof.get('risk_flags', [])
+    if not risks:
+        st.write("- *No risks or bottlenecks detected.*")
+    else:
+        for r in risks:
+            st.markdown(f"- 🔴 {r}")
+            
+    st.markdown("---")
+
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### ⚡ Demo Options")
@@ -137,6 +309,20 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📁 Document Memory")
     uploaded_file = st.file_uploader("Upload meeting document (PDF, TXT):", type=["pdf", "txt"])
+    
+    st.markdown("---")
+    st.markdown("### 👥 Participant CRM Profiles")
+    crm_profiles = load_crm_profiles()
+    if not crm_profiles:
+        st.info("No CRM profiles tracked yet. Save notes or upload documents to build profiles.")
+        selected_crm = None
+    else:
+        crm_names = sorted(list(crm_profiles.keys()))
+        selected_crm = st.selectbox(
+            "Select participant profile to view CRM intelligence:",
+            options=["-- Select --"] + [n.capitalize() for n in crm_names]
+        )
+
 
 
 # ─── PROCESS UPLOADED DOCUMENT ────────────────────────────────────────────────
@@ -215,6 +401,9 @@ You MUST output your response exactly in this structured format:
                     
                     # Strip the participants tagging line from final display
                     display_analysis = re.sub(r"\[PARTICIPANTS\]:.*", "", analysis, flags=re.IGNORECASE).strip()
+                    
+                    # Update CRM database
+                    update_crm_profiles_with_ai(st.session_state.groq_client, file_text)
                     
                     # 4. Link context and store in memory
                     related_meetings = []
@@ -399,6 +588,7 @@ if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] 
                     save_msg = f"Notes successfully stored in local memory for **{participant.capitalize()}**!"
             
             if saved:
+                update_crm_profiles_with_ai(st.session_state.groq_client, notes)
                 reply = f"✓ **{save_msg}**\n\nPerfect! I've saved the meeting with **{participant.capitalize()}** to memory. Next time you prepare for a meeting with them, I'll remember everything you just told me. 🧠"
             else:
                 reply = "🔴 **Error:** Could not save notes. Please check your storage configuration."
