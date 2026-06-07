@@ -380,7 +380,10 @@ Be specific and reference actual details from the memory. If no memory exists, g
         return response.choices[0].message.content.strip()
     except Exception as e:
         error(f"Groq LLM call failed: {e}")
-        return "Could not generate meeting brief. Please check your GROQ_API_KEY."
+        if "invalid_api_key" in str(e) or "401" in str(e):
+            error("Your GROQ_API_KEY is invalid. Get a free key at: https://console.groq.com")
+            error("Then update your .env file and restart the agent.")
+        return None  # Signal failure to caller
 
 # ─── DEMO MODE ────────────────────────────────────────────────────────────────
 
@@ -477,12 +480,14 @@ def run_agent(demo_mode: bool = False):
             section("Generating Meeting Prep Brief")
             brief = generate_meeting_prep_brief(groq_client, participant, memory)
 
-            print(f"\n{'═' * 60}")
-            print(brief)
-            print(f"{'═' * 60}")
-
-            agent_says("Your meeting prep brief is ready! Good luck 🚀")
-            agent_says("After the meeting, use option 2 to save your notes.")
+            if brief is None:
+                warn("Meeting brief could not be generated. Fix your GROQ_API_KEY and try again.")
+            else:
+                print(f"\n{'═' * 60}")
+                print(brief)
+                print(f"{'═' * 60}")
+                agent_says("Your meeting prep brief is ready! Good luck 🚀")
+                agent_says("After the meeting, use option 2 to save your notes.")
 
         # ── OPTION 2: Save meeting notes ──────────────────────────────────────
         elif choice == "2":
